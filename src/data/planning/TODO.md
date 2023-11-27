@@ -1,0 +1,4 @@
+- organize the engine
+- naming conventions
+- fix compile time
+- clean up the stupid ass generate vertex object funciton

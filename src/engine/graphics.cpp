@@ -5,10 +5,12 @@
 #include <iostream>
 #include <GLAD/gtc/type_ptr.hpp>
 #include <GLAD/gtc/matrix_transform.hpp>
+#include <STB/stb_image.h>
 
 void compileShader(unsigned &shader, const char* source, int type), compileProgram(unsigned &programID, unsigned &vertex, unsigned &fragment);
 void createVertexObject(unsigned &VAO, unsigned &VBO, float vertices[], float vertSize, int drawType, GLint vertexAttribSize, bool color, bool texture, GLsizei stride, const void* pointer);
-namespace helltaken {
+void createVertexObjectEBO(unsigned &VAO, unsigned &VBO, unsigned &EBO, float vertices[], unsigned int indices[], float vertSize, float indSize, int drawType, GLint vertexAttribSize, bool ebo, bool color, bool texture, GLsizei stride, const void* pointer);
+namespace rose {
     shader::shader(std::string name)
     {
         unsigned vertex, fragment; std::string vs, fs;
@@ -82,15 +84,11 @@ namespace helltaken {
 
             // render glyph texture over quad
             glBindTexture(GL_TEXTURE_2D, ch.TextureID);
-            glBindBuffer(GL_ARRAY_BUFFER, VBO);
-            glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
-            glDrawArrays(GL_TRIANGLES, 0, 6);
+            glBindBuffer(GL_ARRAY_BUFFER, VBO); glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
+            glBindBuffer(GL_ARRAY_BUFFER, 0); glDrawArrays(GL_TRIANGLES, 0, 6);
             x += (ch.Advance >> 6) * scale; // bitshift by 6 to get value in pixels (2^6 = 64)
         }
-        glBindVertexArray(0);
-        glBindTexture(GL_TEXTURE_2D, 0);
-
+        glBindVertexArray(0); glBindTexture(GL_TEXTURE_2D, 0);
         glDisable(GL_CULL_FACE); glDisable(GL_BLEND);
     }
 
@@ -101,6 +99,65 @@ namespace helltaken {
     }
     void textbox::render() {
         // renders [WPR] words every time the render is called, unless SKIPTEXT is set to true.
+    }
+
+    texture::texture(std::string name, int scale) {
+        float vertices[] = {
+            // positions         // colors           // texture coords
+            1.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,      // top right
+            1.0f, -1.0f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,      // bottom right
+           -1.0f, -1.0f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,      // bottom left
+           -1.0f,  1.0f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f       // top left 
+        };
+        createVertexObjectEBO(VAO, VBO, EBO, vertices, INDICES, sizeof(vertices), sizeof(INDICES), GL_STATIC_DRAW, 3, true, true, true, 8 * sizeof(float), (void*)0);
+        // glGenVertexArrays(1, &VAO);
+        // glGenBuffers(1, &VBO);
+        // glGenBuffers(1, &EBO);
+
+        // glBindVertexArray(VAO);
+
+        // glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        // glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+        // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+        // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+        // // position attribute
+        // glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+        // glEnableVertexAttribArray(0);
+        // // color attribute
+        // glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+        // glEnableVertexAttribArray(1);
+        // // texture coord attribute
+        // glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+        // glEnableVertexAttribArray(2);
+
+        glGenTextures(1, &TEXTUREID); glBindTexture(GL_TEXTURE_2D, TEXTUREID); // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER); glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border);  
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        stbi_set_flip_vertically_on_load(true);  
+        int width, height, channels;
+        unsigned char *data = stbi_load("../src/data/interface/rose.png", &width, &height, &channels, 0);
+        if (data) {
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+            glGenerateMipmap(GL_TEXTURE_2D);
+        }
+        else { std::cout << "Failed to load texture" << std::endl; }
+        stbi_image_free(data);  
+
+    }
+    void texture::render() {
+        shader ourShader("texture");
+        ourShader.useShader(); // don't forget to activate/use the shader before setting uniforms!
+        ourShader.setInt("texture1", 0);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, TEXTUREID);
+
+        // render container
+        glBindVertexArray(VAO);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
     }
 }
 
@@ -133,6 +190,27 @@ void createVertexObject(unsigned &VAO, unsigned &VBO, float vertices[], float ve
     glBindVertexArray(VAO); glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, vertSize, vertices, drawType);
 
+    // position attribute
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, vertexAttribSize, GL_FLOAT, GL_FALSE, stride, pointer);
+    // color & texture attributes
+    if (color) {
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, vertexAttribSize, GL_FLOAT, GL_FALSE, stride, (void *)(3 * sizeof(float)));
+    } if (texture) {
+        glEnableVertexAttribArray(2);  
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, (void*)(6 * sizeof(float)));
+    }
+}
+void createVertexObjectEBO(unsigned &VAO, unsigned &VBO, unsigned &EBO, float vertices[], unsigned int indices[], float vertSize, float indSize, int drawType, GLint vertexAttribSize, bool ebo, bool color, bool texture, GLsizei stride, const void* pointer) {
+    glGenVertexArrays(1, &VAO); glGenBuffers(1, &VBO);
+    glBindVertexArray(VAO); glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, vertSize, vertices, drawType);
+
+    if(ebo) {
+        glGenBuffers(1, &EBO); glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indSize, indices, drawType);
+    }
     // position attribute
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, vertexAttribSize, GL_FLOAT, GL_FALSE, stride, pointer);

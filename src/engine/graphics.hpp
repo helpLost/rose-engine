@@ -9,7 +9,8 @@
     #include <GLFW/glfw3.h>
     #include <ft2build.h>
     #include FT_FREETYPE_H
-    namespace helltaken {
+    #include "screens.hpp"
+    namespace rose {
         inline void endprogram(std::string error) { glfwTerminate(); throw std::runtime_error(error.c_str()); }; inline void endprogram() { glfwTerminate(); }
         class shader
         {
@@ -40,7 +41,12 @@
         };
         class texture {
             private:
+                unsigned TEXTUREID, VAO, VBO, EBO, INDICES[6] = { 0, 1, 3, 1, 2, 3 };
+                float VERTICES;
             public:
+                float border[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+                texture(std::string name, int scale);
+                void render();
         };
         class textbox {
             private:
@@ -55,9 +61,6 @@
         class button {
             private:
             public:
-        };
-        class screen {
-        
         };
     }
 

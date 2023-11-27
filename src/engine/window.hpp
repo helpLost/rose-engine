@@ -4,7 +4,7 @@
     #include <vector>
     #include <GLAD/glm.hpp>
     #include "graphics.hpp"
-    namespace helltaken {
+    namespace rose {
         enum envtype{DEBUG, PRERELEASE, RELEASE};
         class monitor {
             private: const GLFWvidmode *resolution; GLFWmonitor *primary;
@@ -15,7 +15,7 @@
         class window {
             private:
                 int WIDTH, HEIGHT;
-                bool VYSNC = true, ANTIALIASING = true;
+                bool VYSNC = true;
                 std::string TITLE; monitor PRIMARY; envtype ENVIRONMENT = DEBUG;
             public:
                 GLFWwindow *instance; float background[3] = {0.0f, 0.0f, 0.0f}; // init to pure black
