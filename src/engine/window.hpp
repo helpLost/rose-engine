@@ -18,11 +18,11 @@
                 bool VYSNC = true;
                 std::string TITLE; monitor PRIMARY; envtype ENVIRONMENT = DEBUG;
             public:
-                GLFWwindow *instance; float background[3] = {0.0f, 0.0f, 0.0f}; // init to pure black
-                std::vector<font> fonts; std::vector<screen> screens;
+                GLFWwindow *instance; float background[3] = {0.0f, 1.0f, 0.0f}; // init to pure black
+                std::vector<shader> shaders; std::vector<font> fonts; std::vector<screen> screens; // font shader, texture shader
 
                 window(std::string title, std::string icon, bool autostart); void changebg(glm::vec3 newbg) { background[0] = newbg.x; background[1] = newbg.y; background[2] = newbg.z; } 
-                void addFont(font newface) { fonts.push_back(newface); } void addscreen(screen newscreen) { screens.push_back(newscreen); }
+                void addShader(shader newShader) { shaders.push_back(newShader); } void addFont(font newface) { fonts.push_back(newface); } void addscreen(screen newscreen) { screens.push_back(newscreen); }
                 void start(), render(), update();
 
                 glm::ivec2 dim() { return glm::ivec2(WIDTH, HEIGHT); }

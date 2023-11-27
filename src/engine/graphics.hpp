@@ -34,10 +34,9 @@
                 };
                 unsigned VAO, VBO;
                 std::map<char, character> Characters;
-                shader fontshader = shader("font");
             public:
-                font(const char *path, int width, int height, int characterNum, int wwidth, int wheight);
-                void renderText(std::string text, float x, float y, float scale, glm::vec3 color);
+                font(shader fontshader, const char *path, int width, int height, int characterNum, int wwidth, int wheight);
+                void renderText(shader fontshader, std::string text, float x, float y, float scale, glm::vec3 color);
         };
         class texture {
             private:
@@ -45,8 +44,8 @@
                 float VERTICES;
             public:
                 float border[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-                texture(std::string name, int scale);
-                void render();
+                texture(std::string name, float scale);
+                void render(shader textureshader);
         };
         class textbox {
             private:

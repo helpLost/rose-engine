@@ -1,4 +1,7 @@
 - organize the engine
 - naming conventions
 - fix compile time
-- clean up the stupid ass generate vertex object funciton
+- clean up the stupid ass generate vertex object function
+- find a place for the endprogram method
+- self-shaping texture objects
+- store a pointer to the shader in each font/texture object or some shit idk

@@ -38,27 +38,14 @@ namespace rose {
     }
 
     void window::start() { while(!glfwWindowShouldClose(instance)) { render(); update(); } endprogram(); } // run the window until it's closed
-    
-    float vertices[] = {
-    // positions          // colors           // texture coords
-        1.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f, // top right
-        1.0f, -1.0f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f, // bottom right
-        -1.0f, -1.0f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f, // bottom left
-        -1.0f,  1.0f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f  // top left 
-    };
-    unsigned int indices[] = {
-        0, 1, 3, // first triangle
-        1, 2, 3  // second triangle
-    };
-    unsigned VBO, VAO, EBO;
     void window::render() {
         // Color the backgroud and clear the buffer bits
         glClearColor(background[0], background[1], background[2], 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        texture rose(".", 5);
-        rose.render();
-        
+        texture rose("simple-textbox.jpg", 0.5f);
+        rose.render(shaders[1]);
+
         // Swap the buffers
         glfwSwapBuffers(instance);
     }

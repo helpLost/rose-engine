@@ -25,7 +25,7 @@ namespace rose {
         compileShader(vertex, vertexSource, GL_VERTEX_SHADER); compileShader(fragment, fragmentSource, GL_FRAGMENT_SHADER);
         compileProgram(programID, vertex, fragment);
     }
-    font::font(const char *path, int width, int height, int characterNum, int wwidth, int wheight)
+    font::font(shader fontshader, const char *path, int width, int height, int characterNum, int wwidth, int wheight)
     {
         FT_Library ft; FT_Face face; if(FT_Init_FreeType(&ft)) { endprogram("Freetype failed to initialize on the font with path '" + std::string(path) + "'. Something's very wrong."); }
         if(std::string(path).empty()) { endprogram("There is a font face with a null filename. This will cause too many problems for me to allow continuation."); }
@@ -55,7 +55,7 @@ namespace rose {
 
         FT_Done_Face(face); FT_Done_FreeType(ft);
     }
-    void font::renderText(std::string text, float x, float y, float scale, glm::vec3 color)
+    void font::renderText(shader fontshader, std::string text, float x, float y, float scale, glm::vec3 color)
     {
         glEnable(GL_CULL_FACE); glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -92,6 +92,32 @@ namespace rose {
         glDisable(GL_CULL_FACE); glDisable(GL_BLEND);
     }
 
+    texture::texture(std::string name, float scale) {
+        float vertices[] = {
+            // positions          // colors           // texture coords
+            scale, scale, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,    scale,-scale, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f, // top right, bottom right
+           -scale,-scale, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   -scale, scale, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f  // bottom left, top left 
+        };
+        createVertexObjectEBO(VAO, VBO, EBO, vertices, INDICES, sizeof(vertices), sizeof(INDICES), GL_STATIC_DRAW, 3, true, true, true, 8 * sizeof(float), (void*)0);
+
+        glGenTextures(1, &TEXTUREID); glBindTexture(GL_TEXTURE_2D, TEXTUREID); // all upcoming texture operations now have effect on this texture object
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER); glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border);  
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        int width, height, channels; std::string path = "../src/data/interface/" + name;
+        stbi_set_flip_vertically_on_load(true); unsigned char *data = stbi_load(path.c_str(), &width, &height, &channels, 0);
+        if (data) {
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+            glGenerateMipmap(GL_TEXTURE_2D);
+        } else { std::cout << "Failed to load the texture of name '" << name << "'. There's probably a file missing." << std::endl; }
+        stbi_image_free(data);
+    }
+    void texture::render(shader textureshader) {
+        textureshader.useShader(); textureshader.setInt("texture1", 0);
+        glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, TEXTUREID); glBindVertexArray(VAO);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    }
+
     textbox::textbox(std::string speaker, std::string text, std::string background, int wpr)
         :SPEAKER(speaker), TEXT(text), WPR(wpr)
     {
@@ -99,65 +125,6 @@ namespace rose {
     }
     void textbox::render() {
         // renders [WPR] words every time the render is called, unless SKIPTEXT is set to true.
-    }
-
-    texture::texture(std::string name, int scale) {
-        float vertices[] = {
-            // positions         // colors           // texture coords
-            1.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,      // top right
-            1.0f, -1.0f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,      // bottom right
-           -1.0f, -1.0f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,      // bottom left
-           -1.0f,  1.0f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f       // top left 
-        };
-        createVertexObjectEBO(VAO, VBO, EBO, vertices, INDICES, sizeof(vertices), sizeof(INDICES), GL_STATIC_DRAW, 3, true, true, true, 8 * sizeof(float), (void*)0);
-        // glGenVertexArrays(1, &VAO);
-        // glGenBuffers(1, &VBO);
-        // glGenBuffers(1, &EBO);
-
-        // glBindVertexArray(VAO);
-
-        // glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        // glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-        // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-        // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-        // // position attribute
-        // glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-        // glEnableVertexAttribArray(0);
-        // // color attribute
-        // glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-        // glEnableVertexAttribArray(1);
-        // // texture coord attribute
-        // glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-        // glEnableVertexAttribArray(2);
-
-        glGenTextures(1, &TEXTUREID); glBindTexture(GL_TEXTURE_2D, TEXTUREID); // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER); glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border);  
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-        stbi_set_flip_vertically_on_load(true);  
-        int width, height, channels;
-        unsigned char *data = stbi_load("../src/data/interface/rose.png", &width, &height, &channels, 0);
-        if (data) {
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-            glGenerateMipmap(GL_TEXTURE_2D);
-        }
-        else { std::cout << "Failed to load texture" << std::endl; }
-        stbi_image_free(data);  
-
-    }
-    void texture::render() {
-        shader ourShader("texture");
-        ourShader.useShader(); // don't forget to activate/use the shader before setting uniforms!
-        ourShader.setInt("texture1", 0);
-
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, TEXTUREID);
-
-        // render container
-        glBindVertexArray(VAO);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
     }
 }
 
