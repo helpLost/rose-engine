@@ -1,0 +1,8 @@
+- v0.001 - Window:
+    - Functional window
+    - Rendering framework
+    - Updating framework
+- v0.002 - Text:
+    - Font loading capabilities
+    - Text rendering capacity
+    - Gamescreen framework
