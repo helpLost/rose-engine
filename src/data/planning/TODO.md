@@ -5,3 +5,4 @@
 - find a place for the endprogram method
 - self-shaping texture objects
 - store a pointer to the shader in each font/texture object or some shit idk
+- get rid of "color" param in the createVertexObject function

@@ -8,8 +8,8 @@
 #include <STB/stb_image.h>
 
 void compileShader(unsigned &shader, const char* source, int type), compileProgram(unsigned &programID, unsigned &vertex, unsigned &fragment);
-void createVertexObject(unsigned &VAO, unsigned &VBO, float vertices[], float vertSize, int drawType, GLint vertexAttribSize, bool color, bool texture, GLsizei stride, const void* pointer);
-void createVertexObjectEBO(unsigned &VAO, unsigned &VBO, unsigned &EBO, float vertices[], unsigned int indices[], float vertSize, float indSize, int drawType, GLint vertexAttribSize, bool ebo, bool color, bool texture, GLsizei stride, const void* pointer);
+void createVertexObject(unsigned &VAO, unsigned &VBO, float vertices[], float vertSize, int drawType, GLint vertexAttribSize, bool texture, GLsizei stride, const void* pointer);
+void createVertexObjectEBO(unsigned &VAO, unsigned &VBO, unsigned &EBO, float vertices[], unsigned int indices[], float vertSize, float indSize, int drawType, GLint vertexAttribSize, bool texture, GLsizei stride, const void* pointer);
 namespace rose {
     shader::shader(std::string name)
     {
@@ -47,7 +47,7 @@ namespace rose {
                 Characters.insert(std::pair<char, character>(c, chara));
             }
             glBindTexture(GL_TEXTURE_2D, 0);
-            createVertexObject(VAO, VBO, NULL, sizeof(float) * 6 * 4, GL_DYNAMIC_DRAW, 4, false, false, 4 * sizeof(float), 0);
+            createVertexObject(VAO, VBO, NULL, sizeof(float) * 6 * 4, GL_DYNAMIC_DRAW, 4, false, 4 * sizeof(float), 0);
         }
         fontshader.useShader();
         glm::mat4 projection = glm::ortho(0.0f, static_cast<float>(wwidth), 0.0f, static_cast<float>(wheight));
@@ -92,20 +92,20 @@ namespace rose {
         glDisable(GL_CULL_FACE); glDisable(GL_BLEND);
     }
 
-    texture::texture(std::string name, float scale) {
+    texture::texture(std::string name, float width, float height) {
         float vertices[] = {
-            // positions          // colors           // texture coords
-            scale, scale, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,    scale,-scale, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f, // top right, bottom right
-           -scale,-scale, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   -scale, scale, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f  // bottom left, top left 
+            // positions          // texture coords
+            width, height, 0.0f,  1.0f, 1.0f,    width,-height, 0.0f,  1.0f, 0.0f, // top right, bottom right
+           -width,-height, 0.0f,  0.0f, 0.0f,   -width, height, 0.0f,  0.0f, 1.0f  // bottom left, top left 
         };
-        createVertexObjectEBO(VAO, VBO, EBO, vertices, INDICES, sizeof(vertices), sizeof(INDICES), GL_STATIC_DRAW, 3, true, true, true, 8 * sizeof(float), (void*)0);
+        createVertexObjectEBO(VAO, VBO, EBO, vertices, INDICES, sizeof(vertices), sizeof(INDICES), GL_STATIC_DRAW, 3, true, 5 * sizeof(float), (void*)0);
 
         glGenTextures(1, &TEXTUREID); glBindTexture(GL_TEXTURE_2D, TEXTUREID); // all upcoming texture operations now have effect on this texture object
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER); glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border);  
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-        int width, height, channels; std::string path = "../src/data/interface/" + name;
-        stbi_set_flip_vertically_on_load(true); unsigned char *data = stbi_load(path.c_str(), &width, &height, &channels, 0);
+        int w, h, channels; std::string path = "../src/data/interface/" + name;
+        stbi_set_flip_vertically_on_load(true); unsigned char *data = stbi_load(path.c_str(), &w, &h, &channels, 0);
         if (data) {
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
             glGenerateMipmap(GL_TEXTURE_2D);
@@ -152,7 +152,7 @@ void compileProgram(unsigned &programID, unsigned &vertex, unsigned &fragment) {
     glDeleteShader(vertex); glDeleteShader(fragment);
 }
 
-void createVertexObject(unsigned &VAO, unsigned &VBO, float vertices[], float vertSize, int drawType, GLint vertexAttribSize, bool color, bool texture, GLsizei stride, const void* pointer) {
+void createVertexObject(unsigned &VAO, unsigned &VBO, float vertices[], float vertSize, int drawType, GLint vertexAttribSize, bool texture, GLsizei stride, const void* pointer) {
     glGenVertexArrays(1, &VAO); glGenBuffers(1, &VBO);
     glBindVertexArray(VAO); glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, vertSize, vertices, drawType);
@@ -160,32 +160,21 @@ void createVertexObject(unsigned &VAO, unsigned &VBO, float vertices[], float ve
     // position attribute
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, vertexAttribSize, GL_FLOAT, GL_FALSE, stride, pointer);
-    // color & texture attributes
-    if (color) {
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, vertexAttribSize, GL_FLOAT, GL_FALSE, stride, (void *)(3 * sizeof(float)));
-    } if (texture) {
+    if (texture) {
         glEnableVertexAttribArray(2);  
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, (void*)(6 * sizeof(float)));
     }
 }
-void createVertexObjectEBO(unsigned &VAO, unsigned &VBO, unsigned &EBO, float vertices[], unsigned int indices[], float vertSize, float indSize, int drawType, GLint vertexAttribSize, bool ebo, bool color, bool texture, GLsizei stride, const void* pointer) {
+void createVertexObjectEBO(unsigned &VAO, unsigned &VBO, unsigned &EBO, float vertices[], unsigned int indices[], float vertSize, float indSize, int drawType, GLint vertexAttribSize, bool texture, GLsizei stride, const void* pointer) {
     glGenVertexArrays(1, &VAO); glGenBuffers(1, &VBO);
     glBindVertexArray(VAO); glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, vertSize, vertices, drawType);
-
-    if(ebo) {
-        glGenBuffers(1, &EBO); glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indSize, indices, drawType);
-    }
+    glGenBuffers(1, &EBO); glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indSize, indices, drawType);
     // position attribute
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, vertexAttribSize, GL_FLOAT, GL_FALSE, stride, pointer);
-    // color & texture attributes
-    if (color) {
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, vertexAttribSize, GL_FLOAT, GL_FALSE, stride, (void *)(3 * sizeof(float)));
-    } if (texture) {
+    if (texture) {
         glEnableVertexAttribArray(2);  
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, (void*)(6 * sizeof(float)));
     }

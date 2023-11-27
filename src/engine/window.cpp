@@ -43,7 +43,8 @@ namespace rose {
         glClearColor(background[0], background[1], background[2], 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        texture rose("simple-textbox.jpg", 0.5f);
+        // texture rose("simple-textbox.jpg", 1.0f, 1.0f/3, 0, 1, false);
+        texture rose("simple-textbox.jpg", 1.0f, 1.0f/3);
         rose.render(shaders[1]);
 
         // Swap the buffers

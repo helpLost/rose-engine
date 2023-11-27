@@ -44,7 +44,7 @@
                 float VERTICES;
             public:
                 float border[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-                texture(std::string name, float scale);
+                texture(std::string name, float width, float height);
                 void render(shader textureshader);
         };
         class textbox {
